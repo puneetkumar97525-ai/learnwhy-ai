@@ -1,5 +1,7 @@
 # LearnWhy AI — An Explainable, Misconception-Aware Personalized Learning Platform
 
+> Verification note: run the backend/frontend test suites and evaluation script against this checkout before relying on reported results. Synthetic evaluation is not evidence of real-world learning gains.
+
 | Field | Value |
 | :--- | :--- |
 | **Product Name** | **LearnWhy AI** |
