@@ -87,11 +87,14 @@ def test_mastery_update_formula_and_concept_isolation(client: TestClient):
             "email": "fresh.learner@demo.learnwhy.edu",
             "password": "Password123!",
             "full_name": "Fresh Learner",
-            "role": "student",
+            # Attempt privilege escalation; public registration must ignore this.
+            "role": "admin",
         },
     )
     assert reg.status_code == 201
+    assert reg.json()["user"]["role"] == "student"
     headers = {"Authorization": f"Bearer {reg.json()['access_token']}"}
+    assert client.get("/api/admin/overview", headers=headers).status_code == 403
 
     courses = client.get("/api/courses").json()["courses"]
     course_id = courses[0]["id"]
