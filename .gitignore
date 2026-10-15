@@ -1,25 +1,37 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.venv/
-venv/
+*.egg-info/
+
+# Environment and local databases
 .env
 .env.*
 !.env.example
-
-# Databases / generated evaluation
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 
-# Node
-node_modules/
-dist/
+# Generated evaluation and test output
 coverage/
 .vite/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+*.tsbuildinfo
 
 # Editors / OS
 .vscode/

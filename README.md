@@ -1,122 +1,166 @@
-# LearnWhy AI
+# LearnWhy AI — An Explainable, Misconception-Aware Personalized Learning Platform
 
-**An Explainable, Misconception-Aware Personalized Learning Platform Using Knowledge Tracing and Adaptive Remediation**
+> Verification note: run the backend/frontend test suites and evaluation script against this checkout before relying on reported results. Synthetic evaluation is not evidence of real-world learning gains.
 
-MCA project: **PSM147 (Serial 47) · PS Number QE4 · Quality Education**
+| Field | Value |
+| :--- | :--- |
+| **Product Name** | **LearnWhy AI** |
+| **Official Source Problem** | **PSM147** (Serial No. **47**) |
+| **Official Problem Title** | **AI-Powered Personalized Learning Platform** |
+| **PS Number & Theme** | **QE4** — *Quality Education* |
+| **Full Proposed Title** | *LearnWhy AI — An Explainable, Misconception-Aware Personalized Learning Platform Using Knowledge Tracing and Adaptive Remediation* |
+| **Initial Subject Domain** | Python Programming Education |
 
-> Repository status: project documentation is being set up first. Add the full frontend/backend source tree before treating this as a runnable application. Reported test/evaluation results should be reproducible from committed code before being claimed as independently verified.
+---
 
-## Overview
+## 1. Overview & Differentiator
 
-LearnWhy AI is designed to personalize Python learning with an explainable loop:
+**LearnWhy AI** is a full-stack personalized learning platform for Python programming education that implements all six mandatory considerations from the official **PSM147 / QE4** problem statement alongside a transparent, testable learning loop:
 
-1. Learner answers a concept-focused question.
-2. The system diagnoses a likely misconception.
-3. If competing explanations are plausible, it asks a diagnostic follow-up.
-4. It recommends a targeted activity and explains why.
-5. A fresh question verifies the same concept.
-6. Mastery estimates and progress are updated.
+$$\text{Attempt} \longrightarrow \text{Misconception Diagnosis} \longrightarrow \text{Diagnostic Follow-Up (when ambiguous)} \longrightarrow \text{Explainable Multimodal Intervention} \longrightarrow \text{Fresh Verification} \longrightarrow \text{Mastery Update}$$
 
-The project also includes an educator dashboard for aggregate learning insights and supportive review.
+### Six Mandatory Official Source-Sheet Considerations (`SRC-1` to `SRC-6`)
+1. **Adaptive Learning Models (`SRC-1`)**: Maintains concept-level mastery estimates in $[0, 1]$ using a transparent baseline update ($M_{\text{new}} = (1 - \alpha) M_{\text{old}} + \alpha y$), respects directed prerequisite links, adapts question/activity difficulty, and explains every recommendation.
+2. **Intelligent Tutoring Systems (`SRC-2`)**: Provides a progressive 3-step hint ladder, curated step-by-step explanations, plain-language summaries, worked examples, and deterministic answer validation that works 100% without an external LLM API key.
+3. **Gamification & Engagement (`SRC-3`)**: Awards points for effort and milestones (`FIRST_ATTEMPT`, `ACTIVE_PRACTICE_5`, `VERIFIED_REMEDIATION_1`, `CONCEPT_BUILDER_2`), tracks daily goals and optional streaks, never locks learning content behind a paywall, and never penalizes learners for using hints or accessibility tools.
+4. **Multimodal Learning (`SRC-4`)**: Offers readable text, annotated Python code blocks, accessible inline SVG flowcharts, optional Web Speech audio narration with synchronized text transcripts/captions, and interactive micro-checks as learner-selectable presentation formats (never fixed "learning-style" labels).
+5. **Accessibility & Inclusivity (`SRC-5`)**: Keyboard-operable controls, skip-to-main-content link, visible focus rings, semantic HTML landmarks/tables, scalable typography (`normal` / `large` / `xlarge`), reduced-motion mode, high-contrast borders, non-color-only status badges, plain-language explanations, and English/Hindi bilingual support.
+6. **Data-Driven Insights for Educators (`SRC-6`)**: Role-protected educator dashboard displaying class concept mastery and accuracy, common misconceptions with rule versions, learners flagged for supportive review with transparent alert rules, educator review notes/overrides, aggregate CSV export, and reproducible baseline evaluation metrics.
 
-## Six required considerations
+---
 
-- **Adaptive learning models:** concept-level mastery, prerequisite relationships, adaptive difficulty.
-- **Intelligent tutoring systems:** progressive hints, worked examples, and misconception-specific explanations.
-- **Gamification and engagement:** practice goals, optional streaks, points, and milestone badges; learning content is not locked behind rewards.
-- **Multimodal learning:** readable text, annotated code, diagrams, optional audio narration, and interactive checks. These are presentation choices, not fixed learner “types.”
-- **Accessibility and inclusivity:** keyboard support, visible focus, scalable typography, reduced motion, high contrast, plain language, and English/Hindi support.
-- **Data-driven educator insights:** cohort summaries, concept mastery, recurring misconceptions, supportive-review flags, and aggregate CSV export.
+## 2. System Architecture & Diagrams
 
-## Architecture
+### High-Level Architecture
+```mermaid
+flowchart LR
+  subgraph Client["React + TypeScript + Vite Frontend"]
+    UI_Home["Home & Concept DAG"]
+    UI_Learn["Learn Workspace (Question / Follow-Up / Remediation / Verification)"]
+    UI_Prog["Progress & Accessible Charts/Tables"]
+    UI_Edu["Educator Insights & CSV Export"]
+    UI_Adm["Admin Content & Rule Studio"]
+  end
 
-- Frontend: React, TypeScript, Vite
-- Backend: Python, FastAPI
-- Persistence: SQLAlchemy 2.x and Alembic
-- Database: SQLite for local development; PostgreSQL supported through configuration
-- Tests: pytest and Vitest
-- Tutor: deterministic curated content by default; optional server-side LLM adapter
+  subgraph Server["Python + FastAPI Backend (/api)"]
+    Auth["JWT Auth, RBAC & Rate Limiter"]
+    Mastery["Mastery Engine: M_new = (1-α)M_old + αy"]
+    Diag["Versioned Misconception & Follow-Up Engine"]
+    Rec["Explainable Ranker (Proposed B vs Baseline A)"]
+    Tutor["Curated Tutor + Optional LLM Adapter"]
+  end
 
-## Methods
+  subgraph DB["Relational Database (PostgreSQL / SQLite + SQLAlchemy + Alembic)"]
+    Tables["17 Normalized Entities + Audit & Research Logs"]
+  end
 
-### Mastery update
+  Client <-->|"JSON / CSV over /api"| Server
+  Server <--> Tables
+```
 
-The implementation report describes this configurable moving-average heuristic:
+### Normalized Relational Database Schema (17 Entities)
+- `users`: Accounts (`student`, `educator`, `admin`), bcrypt password hashes, points, streak preferences.
+- `learner_preferences`: Language (`en`, `hi`, `bilingual`), `text_size`, `reduced_motion`, `high_contrast`, `plain_language_mode`, `preferred_formats`.
+- `courses`: Versioned course catalog (`python-foundations-101`).
+- `concepts`: 6 core Python concepts (`variables-expressions`, `conditions`, `loops`, `functions`, `lists`, `list-iteration`).
+- `concept_prerequisites`: Directed edges (`concept_id`, `prerequisite_id`) with self-loop check constraints.
+- `misconceptions`: Versioned diagnostic rules (`MISC-VAR-REASSIGN`, `MISC-COND-ELIF-CHAIN`, `MISC-LOOP-RANGE-STOP`, etc.).
+- `questions`: Curated questions with `stable_id`, `answer_key`, `explanation`, `plain_language_explanation`, `worked_example`, `hint_ladder`, `diagram_svg`, `audio_transcript`, and flags `is_diagnostic_followup` / `is_verification_only`.
+- `answer_options`: Options mapped to primary and optional secondary misconceptions (`confidence_weight`, `ambiguity_note`).
+- `activities`: Multimodal remediation modules with text, code, SVG diagrams, audio transcripts, and interactive checks.
+- `attempts`: Raw learner responses (`practice`, `diagnostic_followup`, `verification`) separated from diagnoses.
+- `diagnoses`: Candidate misconceptions, confidence, evidence, `status` (`diagnosed`, `ambiguous_followup_needed`, `insufficient_evidence`, `resolved_by_followup`, `correct_no_error`), and `rule_version`.
+- `mastery_states`: Concept mastery estimates in $[0, 1]$, attempt counts, uncertainty bounds, and `model_version`.
+- `recommendations`: Stored rank, plain-language `reason`, and `score_components` JSON.
+- `intervention_outcomes`: Pre/post mastery, immediate verification outcome, `error_recurred`, and educator review notes.
+- `achievements` & `user_achievements`: Non-punitive gamification badges and earned timestamps.
+- `audit_events`: Sanitized research and content audit logs (never logging passwords, tokens, or secrets).
 
-`M_new = (1 - alpha) * M_old + alpha * y`
+---
 
-Here `y` is 1 for a correct response and 0 otherwise; the reported default is `alpha = 0.20`. This is a project heuristic, not a validated cognitive model.
+## 3. Core Algorithms
 
-### Explainable recommendation
+### 3.1 Baseline Concept Mastery Update
+$$M_{\text{new}} = (1 - \alpha) \cdot M_{\text{old}} + \alpha \cdot y$$
+where $M_{\text{old}} \in [0, 1]$, $y \in \{0, 1\}$, and $\alpha = 0.20$ (configurable via `MASTERY_ALPHA`). Updates **only** the concept measured by the attempted question. Framed explicitly as a heuristic estimate of recent performance, not a fixed measure of student ability.
 
-`R(a) = 0.50 * G + 0.30 * P + 0.20 * D`
+### 3.2 Transparent Misconception Diagnosis & Ambiguity Disambiguation
+- **Single High-Confidence Rule ($\ge 0.70$)**: Status `diagnosed`, stores candidate misconception, confidence, evidence, and `rule_version`.
+- **Ambiguous Evidence (Multiple Competing Causes)**: Status `ambiguous_followup_needed`, lists competing candidate misconceptions, and presents a short **diagnostic follow-up question** (`POST /api/attempts/{id}/diagnostic-follow-up`) to disambiguate before recommending remediation.
+- **Unmapped Wrong Answer**: Status `insufficient_evidence`, avoiding overconfident false diagnoses from a single response.
 
-- `G`: gap relevance
-- `P`: prerequisite importance
-- `D`: difficulty fit
+### 3.3 Explainable Recommendation Ranking
+$$R(\text{activity}) = 0.50 \cdot \text{gap\_relevance} + 0.30 \cdot \text{prerequisite\_importance} + 0.20 \cdot \text{difficulty\_fit}$$
+Each component is normalized to $[0, 1]$ with configurable weights (`REC_WEIGHT_GAP`, `REC_WEIGHT_PREREQ`, `REC_WEIGHT_DIFFICULTY`). Every recommendation stores its component values and a plain-language reason.
 
-The weights are initial design choices that should be evaluated and tuned. A score-based baseline is included in the reported design for comparison. Synthetic evaluation must be labeled synthetic and is not evidence of real-world learning gains.
+---
 
-## Local development
+## 4. Local Setup & Run Instructions
 
-These commands require the corresponding source files to be committed first.
-
-### Environment
-
-Copy `.env.example` to `.env` and replace the placeholder secret with a unique random value.
-
-### Initialize the database
-
+### 4.1 Environment Variables
+Copy `.env.example` to `.env` (optional for local non-Docker run; safe defaults are preconfigured):
 ```bash
+cp .env.example .env
+```
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `sqlite:///./backend/learnwhy.db` | SQLite default or `postgresql+psycopg2://...` for PostgreSQL |
+| `JWT_SECRET_KEY` | Placeholder dev secret | HMAC-SHA256 signing key for session tokens |
+| `MASTERY_ALPHA` | `0.20` | Configurable EMA learning rate $\alpha$ |
+| `REC_WEIGHT_GAP` | `0.50` | Provisional weight for gap relevance |
+| `REC_WEIGHT_PREREQ` | `0.30` | Provisional weight for prerequisite importance |
+| `REC_WEIGHT_DIFFICULTY` | `0.20` | Provisional weight for difficulty & preference fit |
+| `LLM_PROVIDER` | `none` | Optional server-side LLM adapter (`none` uses deterministic curated tutor) |
+
+### 4.2 Option A: Non-Docker Local Setup (Recommended for Quick Evaluation)
+```bash
+# 1. Install backend dependencies, run Alembic migrations, and seed sample data
 cd backend
+pip install -r requirements.txt
 alembic upgrade head
-python -m app.seed
-```
+python3 -m app.seed
 
-### Start the API
+# 2. Start the FastAPI backend on port 8000
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-```bash
-cd backend
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-### Start the frontend (second terminal)
-
-```bash
-cd frontend
+# 3. In a second terminal, install and start the React + Vite frontend on port 5173
+cd ../frontend
 npm install
 npm run dev
 ```
 
-### Run tests and evaluation
+### 4.3 Option B: Docker Compose (PostgreSQL 16 + FastAPI + Vite)
+```bash
+docker compose up --build
+```
 
+### 4.4 Demo Accounts (Pre-Seeded Sample Data)
+| Role | Email | Password | Highlights |
+| :--- | :--- | :--- | :--- |
+| **Student** | `aarav.student@demo.learnwhy.edu` | `StudentPass123!` | Active learner with concept progress, badges & recommendations |
+| **Student (Needs Review)** | `priya.student@demo.learnwhy.edu` | `StudentPass123!` | Learner flagged for supportive educator review on Loops |
+| **Educator** | `meera.educator@demo.learnwhy.edu` | `EducatorPass123!` | Class analytics, common misconceptions, CSV export & baseline eval |
+| **Admin** | `vikram.admin@demo.learnwhy.edu` | `AdminPass123!` | Manage questions, misconception rules, concepts & audit logs |
+
+---
+
+## 5. Automated Testing & Reproducible Evaluation
+
+### Run Backend Unit & Integration Tests (`pytest`)
 ```bash
 cd backend
 pytest -v
 ```
 
+### Run Frontend Component & Accessibility Tests (`vitest`)
 ```bash
 cd frontend
 npm run test
 ```
 
+### Run Reproducible Baseline A vs. Proposed B Evaluation
 ```bash
-python evaluation/evaluate_methods.py
+python3 evaluation/evaluate_methods.py
 ```
-
-## Security and privacy
-
-- Never commit `.env`, credentials, API keys, local database files, or real student data.
-- Keep LLM keys server-side; never expose them in browser code.
-- Do not execute arbitrary learner-submitted Python on the application server.
-- Use synthetic or properly de-identified data for demos.
-- Obtain consent and appropriate institutional approval for human-subject studies.
-- Check repository visibility before uploading code or datasets.
-
-## Deferred work and limitations
-
-The implementation report says live external LLM generation is not configured by default, arbitrary student code execution is intentionally excluded, and delayed-retention claims require a future approved study with consented participants.
-
-## Academic reporting
-
-Document the evaluation setup, dataset size, limitations, and reproducible results transparently. Synthetic benchmark performance must not be presented as proof of long-term learning effectiveness.
+This script evaluates `evaluation/labeled_evaluation_dataset.json` ($N_{\text{dev}}=4$, $N_{\text{test}}=12$ held-out test cases) and writes `evaluation/latest_evaluation_report.json`.
+*Note: All benchmark figures are explicitly labeled as synthetic / expert-labeled technical evaluation data, not clinical human-subjects findings.*

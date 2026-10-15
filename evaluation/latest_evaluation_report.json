@@ -1,0 +1,220 @@
+{
+  "evaluation_title": "LearnWhy AI \u2014 Baseline A vs. Proposed B Comparative Evaluation Report",
+  "is_synthetic_benchmark": true,
+  "methodology_and_limitations": "SYNTHETIC / EXPERT-LABELED BENCHMARK REPORT: All diagnosis precision/recall/F1 and recommendation relevance metrics below are computed deterministically on the held-out test split (N_test=12, N_dev=4) without tuning rules on the test split. Verification accuracy and error recurrence figures reflect the documented synthetic simulation cases in `evaluation/labeled_evaluation_dataset.json`, NOT a clinical study with human students. Real educational impact requires an institutionally approved study with consented learners.",
+  "versions": {
+    "rule_engine_version": "v1.0.0-rules",
+    "mastery_model_version": "v1.0.0-ema-alpha0.2",
+    "dataset_version": "1.0.0"
+  },
+  "sample_sizes": {
+    "total_cases": 16,
+    "development_split_n": 4,
+    "held_out_test_split_n": 12
+  },
+  "diagnosis_metrics_held_out_test": {
+    "macro_precision": 1.0,
+    "macro_recall": 1.0,
+    "macro_f1": 1.0,
+    "exact_match_accuracy": 1.0,
+    "per_class": {
+      "INSUFFICIENT_EVIDENCE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "MISC-COND-ELIF-CHAIN": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1
+      },
+      "MISC-COND-TRUTHY-OR": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1
+      },
+      "MISC-FUNC-LOCAL-SCOPE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1
+      },
+      "MISC-FUNC-PRINT-RETURN": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1
+      },
+      "MISC-ITER-INDEX-VALUE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1
+      },
+      "MISC-LIST-ZERO-INDEX": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1
+      },
+      "MISC-LOOP-RANGE-STOP": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1
+      },
+      "MISC-VAR-REASSIGN": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1
+      },
+      "MISC-VAR-STR-INT": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1
+      }
+    }
+  },
+  "comparison_summary": {
+    "baseline_a_score_based": {
+      "method": "Baseline A: Score-based ranking (1 - mastery) without misconception diagnosis",
+      "recommendation_relevance_rate": 0.6667,
+      "simulated_immediate_verification_accuracy": 0.4167,
+      "simulated_error_recurrence_rate": 0.5833
+    },
+    "proposed_b_misconception_aware": {
+      "method": "Proposed B: Misconception diagnosis + ambiguous follow-up + explainable recommendation + fresh verification",
+      "recommendation_relevance_rate": 1.0,
+      "simulated_immediate_verification_accuracy": 1.0,
+      "simulated_error_recurrence_rate": 0.0
+    }
+  },
+  "completion_time_seconds_synthetic": {
+    "mean": 152.9,
+    "median": 150.0,
+    "min": 125,
+    "max": 190
+  },
+  "system_performance": {
+    "total_api_requests": 75,
+    "api_error_rate": 0.0,
+    "latency_p50_ms": 11.04,
+    "latency_p95_ms": 229.91,
+    "meets_500ms_p95_target": true
+  },
+  "held_out_test_case_results": [
+    {
+      "case_id": "EVAL-TEST-01",
+      "question_stable_id": "PY-VAR-01",
+      "ground_truth": "MISC-VAR-REASSIGN",
+      "predicted_after_followup": "MISC-VAR-REASSIGN",
+      "proposed_top_activity": "ACT-VAR-01",
+      "baseline_top_activity": "ACT-LOOP-01",
+      "expected_activity": "ACT-VAR-01"
+    },
+    {
+      "case_id": "EVAL-TEST-02",
+      "question_stable_id": "PY-VAR-02",
+      "ground_truth": "MISC-VAR-STR-INT",
+      "predicted_after_followup": "MISC-VAR-STR-INT",
+      "proposed_top_activity": "ACT-VAR-01",
+      "baseline_top_activity": "ACT-LOOP-01",
+      "expected_activity": "ACT-VAR-01"
+    },
+    {
+      "case_id": "EVAL-TEST-03",
+      "question_stable_id": "PY-COND-01",
+      "ground_truth": "MISC-COND-ELIF-CHAIN",
+      "predicted_after_followup": "MISC-COND-ELIF-CHAIN",
+      "proposed_top_activity": "ACT-COND-01",
+      "baseline_top_activity": "ACT-COND-01",
+      "expected_activity": "ACT-COND-01"
+    },
+    {
+      "case_id": "EVAL-TEST-04",
+      "question_stable_id": "PY-COND-02",
+      "ground_truth": "MISC-COND-TRUTHY-OR",
+      "predicted_after_followup": "MISC-COND-TRUTHY-OR",
+      "proposed_top_activity": "ACT-COND-01",
+      "baseline_top_activity": "ACT-COND-01",
+      "expected_activity": "ACT-COND-01"
+    },
+    {
+      "case_id": "EVAL-TEST-05",
+      "question_stable_id": "PY-LOOP-01",
+      "ground_truth": "MISC-LOOP-RANGE-STOP",
+      "predicted_after_followup": "MISC-LOOP-RANGE-STOP",
+      "proposed_top_activity": "ACT-LOOP-01",
+      "baseline_top_activity": "ACT-LOOP-01",
+      "expected_activity": "ACT-LOOP-01"
+    },
+    {
+      "case_id": "EVAL-TEST-06",
+      "question_stable_id": "PY-LOOP-01",
+      "ground_truth": "INSUFFICIENT_EVIDENCE",
+      "predicted_after_followup": "INSUFFICIENT_EVIDENCE",
+      "proposed_top_activity": "ACT-LOOP-01",
+      "baseline_top_activity": "ACT-FUNC-01",
+      "expected_activity": "ACT-LOOP-01"
+    },
+    {
+      "case_id": "EVAL-TEST-07",
+      "question_stable_id": "PY-FUNC-01",
+      "ground_truth": "MISC-FUNC-PRINT-RETURN",
+      "predicted_after_followup": "MISC-FUNC-PRINT-RETURN",
+      "proposed_top_activity": "ACT-FUNC-01",
+      "baseline_top_activity": "ACT-FUNC-01",
+      "expected_activity": "ACT-FUNC-01"
+    },
+    {
+      "case_id": "EVAL-TEST-08",
+      "question_stable_id": "PY-FUNC-01",
+      "ground_truth": "MISC-FUNC-LOCAL-SCOPE",
+      "predicted_after_followup": "MISC-FUNC-LOCAL-SCOPE",
+      "proposed_top_activity": "ACT-FUNC-01",
+      "baseline_top_activity": "ACT-FUNC-01",
+      "expected_activity": "ACT-FUNC-01"
+    },
+    {
+      "case_id": "EVAL-TEST-09",
+      "question_stable_id": "PY-LIST-01",
+      "ground_truth": "MISC-LIST-ZERO-INDEX",
+      "predicted_after_followup": "MISC-LIST-ZERO-INDEX",
+      "proposed_top_activity": "ACT-LIST-01",
+      "baseline_top_activity": "ACT-LIST-01",
+      "expected_activity": "ACT-LIST-01"
+    },
+    {
+      "case_id": "EVAL-TEST-10",
+      "question_stable_id": "PY-LIST-02",
+      "ground_truth": "INSUFFICIENT_EVIDENCE",
+      "predicted_after_followup": "INSUFFICIENT_EVIDENCE",
+      "proposed_top_activity": "ACT-LIST-01",
+      "baseline_top_activity": "ACT-LIST-01",
+      "expected_activity": "ACT-LIST-01"
+    },
+    {
+      "case_id": "EVAL-TEST-11",
+      "question_stable_id": "PY-ITER-01",
+      "ground_truth": "MISC-ITER-INDEX-VALUE",
+      "predicted_after_followup": "MISC-ITER-INDEX-VALUE",
+      "proposed_top_activity": "ACT-ITER-01",
+      "baseline_top_activity": "ACT-LOOP-01",
+      "expected_activity": "ACT-ITER-01"
+    },
+    {
+      "case_id": "EVAL-TEST-12",
+      "question_stable_id": "PY-COND-01",
+      "ground_truth": "INSUFFICIENT_EVIDENCE",
+      "predicted_after_followup": "INSUFFICIENT_EVIDENCE",
+      "proposed_top_activity": "ACT-COND-01",
+      "baseline_top_activity": "ACT-COND-01",
+      "expected_activity": "ACT-COND-01"
+    }
+  ]
+}
