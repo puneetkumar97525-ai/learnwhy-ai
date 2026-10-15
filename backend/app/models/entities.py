@@ -383,3 +383,16 @@ class AuditEvent(Base):
 Index("ix_attempts_user_question", Attempt.user_id, Attempt.question_id)
 Index("ix_diagnoses_user_concept", Diagnosis.user_id, Diagnosis.concept_id)
 Index("ix_recommendations_user_status", Recommendation.user_id, Recommendation.status)
+
+
+class EducatorCourseAssignment(Base):
+    """Explicit authorization linking an educator to a course/cohort."""
+
+    __tablename__ = "educator_course_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    educator_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True)
+    assigned_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
+
+    __table_args__ = (UniqueConstraint("educator_id", "course_id", name="uq_educator_course_assignment"),)
