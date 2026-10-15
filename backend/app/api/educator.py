@@ -10,6 +10,8 @@ from app.core.security import require_roles
 from app.models.entities import (
     Attempt,
     Concept,
+    Course,
+    EducatorCourseAssignment,
     Diagnosis,
     InterventionOutcome,
     MasteryState,
@@ -23,6 +25,22 @@ from app.services.audit import log_audit_event
 router = APIRouter(prefix="/api/educator", tags=["educator"])
 
 
+def _authorize_course_access(course_id: int, current_user: User, db: Session) -> Course:
+    """Treat the legacy class_id route parameter as a course/cohort ID and fail closed."""
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Class/course not found.")
+    if current_user.role == "admin":
+        return course
+    assignment = db.query(EducatorCourseAssignment).filter(
+        EducatorCourseAssignment.educator_id == current_user.id,
+        EducatorCourseAssignment.course_id == course_id,
+    ).first()
+    if not assignment:
+        raise HTTPException(status_code=403, detail="You are not assigned to this class.")
+    return course
+
+
 @router.get("/classes/{class_id}/analytics")
 def get_class_analytics(
     class_id: int,
@@ -30,36 +48,60 @@ def get_class_analytics(
     current_user: User = Depends(require_roles(["educator", "admin"])),
     db: Session = Depends(get_db),
 ):
+    course = _authorize_course_access(class_id, current_user, db)
     students = (
         db.query(User)
-        .filter(User.role == "student", User.status == "active")
+        .filter(User.role == "student", User.status == "active", User.selected_course_id == course.id)
         .all()
     )
     student_map = {s.id: s for s in students}
+    student_ids = list(student_map)
     concepts = (
         db.query(Concept)
-        .filter(Concept.status == "published")
+        .filter(Concept.course_id == course.id, Concept.status == "published")
         .order_by(Concept.order_index.asc())
         .all()
     )
+    concept_ids = [c.id for c in concepts]
     if concept_id is not None:
         concepts_filtered = [c for c in concepts if c.id == concept_id]
+        if not concepts_filtered:
+            raise HTTPException(status_code=404, detail="Concept not found in this course.")
     else:
         concepts_filtered = concepts
 
     concept_map = {c.id: c for c in concepts}
-    questions = db.query(Question).all()
-    q_to_concept = {q.id: q.concept_id for q in questions}
-    misc_map = {m.id: m for m in db.query(Misconception).all()}
-
-    all_attempts = db.query(Attempt).all()
-    all_mastery = db.query(MasteryState).all()
-    all_diagnoses = db.query(Diagnosis).all()
-    all_outcomes = (
-        db.query(InterventionOutcome)
-        .order_by(InterventionOutcome.created_at.desc())
+    questions = (
+        db.query(Question)
+        .join(Concept, Question.concept_id == Concept.id)
+        .filter(Concept.course_id == course.id)
         .all()
     )
+    q_to_concept = {q.id: q.concept_id for q in questions}
+    misc_map = ({m.id: m for m in db.query(Misconception).filter(Misconception.concept_id.in_(concept_ids)).all()} if concept_ids else {})
+
+    all_attempts = (
+        db.query(Attempt)
+        .filter(Attempt.user_id.in_(student_ids), Attempt.question_id.in_(list(q_to_concept)))
+        .all()
+    ) if student_ids and q_to_concept else []
+    all_mastery = (
+        db.query(MasteryState)
+        .filter(MasteryState.user_id.in_(student_ids), MasteryState.concept_id.in_(concept_ids))
+        .all()
+    ) if student_ids and concept_ids else []
+    all_diagnoses = (
+        db.query(Diagnosis)
+        .filter(Diagnosis.user_id.in_(student_ids), Diagnosis.concept_id.in_(concept_ids))
+        .order_by(Diagnosis.created_at.asc())
+        .all()
+    ) if student_ids and concept_ids else []
+    all_outcomes = (
+        db.query(InterventionOutcome)
+        .filter(InterventionOutcome.user_id.in_(student_ids), InterventionOutcome.concept_id.in_(concept_ids))
+        .order_by(InterventionOutcome.created_at.desc())
+        .all()
+    ) if student_ids and concept_ids else []
 
     # Concept-level performance
     concept_performance = []
@@ -212,7 +254,7 @@ def get_class_analytics(
 
     return {
         "class_id": class_id,
-        "class_name": "MCA Python Foundations Cohort (Demo Sample Data)",
+        "class_name": course.title,
         "alert_methodology_note": (
             "Supportive review flags are generated deterministically when a learner's concept mastery "
             "estimate remains below 48% after at least 2 attempts, or when 2+ attempts trigger a candidate "
@@ -269,13 +311,20 @@ def acknowledge_outcome_alert(
     current_user: User = Depends(require_roles(["educator", "admin"])),
     db: Session = Depends(get_db),
 ):
+    course = _authorize_course_access(class_id, current_user, db)
     outcome = (
         db.query(InterventionOutcome)
-        .filter(InterventionOutcome.id == payload.outcome_id)
+        .join(Concept, InterventionOutcome.concept_id == Concept.id)
+        .filter(InterventionOutcome.id == payload.outcome_id, Concept.course_id == course.id)
         .first()
     )
     if not outcome:
-        raise HTTPException(status_code=404, detail="Intervention outcome not found.")
+        raise HTTPException(status_code=404, detail="Intervention outcome not found in this class.")
+    learner = db.query(User).filter(
+        User.id == outcome.user_id, User.role == "student", User.selected_course_id == course.id
+    ).first()
+    if not learner:
+        raise HTTPException(status_code=404, detail="Intervention outcome not found in this class.")
 
     outcome.educator_note = payload.educator_note.strip()
     outcome.educator_Acknowledged = payload.acknowledged
