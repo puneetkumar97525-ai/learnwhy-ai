@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 from app.core.database import Base, get_db
 from app.core.security import rate_limiter
 from app.main import app
-from app.models.entities import Concept, MasteryState, Question
+from app.models.entities import Attempt, Concept, Course, MasteryState, Question, User
 from app.seed import seed_database
 from app.services.mastery import compute_ema_mastery
 
@@ -32,6 +32,7 @@ def client():
     TestingSessionLocal = sessionmaker(
         autocommit=False, autoflush=False, bind=test_engine, future=True
     )
+    app.state.test_session_local = TestingSessionLocal
     Base.metadata.create_all(bind=test_engine)
 
     with TestingSessionLocal() as session:
@@ -305,9 +306,42 @@ def test_role_permissions_educator_and_admin(client: TestClient):
         == 403
     )
 
-    # Unassigned/nonexistent classes must not expose learner data.
+    # Add a second course and learner to prove both authorization and cohort scoping.
+    baseline = client.get("/api/educator/classes/1/analytics", headers=educator_headers)
+    assert baseline.status_code == 200
+    baseline_summary = baseline.json()["summary"]
+    with app.state.test_session_local() as db:
+        other_course = Course(
+            slug="unassigned-course-test", title="Unassigned Course",
+            description="A separate test cohort.", status="published", version="1.0.0",
+        )
+        db.add(other_course)
+        db.flush()
+        other_student = User(
+            email="other.cohort.student@example.test", full_name="Other Cohort Student",
+            password_hash="unused-test-hash", role="student", status="active",
+            selected_course_id=other_course.id,
+        )
+        db.add(other_student)
+        db.flush()
+        first_course_question = db.query(Question).first()
+        db.add(Attempt(
+            user_id=other_student.id, question_id=first_course_question.id,
+            response="A", is_correct=False, attempt_context="privacy-scope-test",
+        ))
+        other_course_id = other_course.id
+        db.commit()
+
+    # Educator is not assigned to the second, existing course.
+    assert client.get(f"/api/educator/classes/{other_course_id}/analytics", headers=educator_headers).status_code == 403
+    assert client.get(f"/api/educator/classes/{other_course_id}/export", headers=educator_headers).status_code == 403
+    after = client.get("/api/educator/classes/1/analytics", headers=educator_headers)
+    assert after.status_code == 200
+    assert after.json()["summary"]["active_students"] == baseline_summary["active_students"] == 3
+    assert after.json()["summary"]["total_attempts"] == baseline_summary["total_attempts"]
+
+    # Unknown classes also fail closed.
     assert client.get("/api/educator/classes/999/analytics", headers=educator_headers).status_code == 404
-    assert client.get("/api/educator/classes/999/export", headers=educator_headers).status_code == 404
 
     # Educator can view class analytics & export CSV, but cannot access admin content CRUD
     edu_analytics = client.get(
