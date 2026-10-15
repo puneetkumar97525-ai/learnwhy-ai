@@ -92,7 +92,8 @@ def register(
         email=payload.email,
         full_name=payload.full_name.strip(),
         password_hash=hash_password(payload.password),
-        role=payload.role,
+        # Public self-registration must never grant privileged roles.
+        role="student",
         status="active",
         onboarding_completed=False,
         selected_course_id=default_course.id if default_course else None,
