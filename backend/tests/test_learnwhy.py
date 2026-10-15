@@ -305,6 +305,10 @@ def test_role_permissions_educator_and_admin(client: TestClient):
         == 403
     )
 
+    # Unassigned/nonexistent classes must not expose learner data.
+    assert client.get("/api/educator/classes/999/analytics", headers=educator_headers).status_code == 404
+    assert client.get("/api/educator/classes/999/export", headers=educator_headers).status_code == 404
+
     # Educator can view class analytics & export CSV, but cannot access admin content CRUD
     edu_analytics = client.get(
         "/api/educator/classes/1/analytics", headers=educator_headers
