@@ -26,6 +26,13 @@ def upgrade() -> None:
         batch_op.create_index("ix_educator_course_assignments_id", ["id"], unique=False)
         batch_op.create_index("ix_educator_course_assignments_educator_id", ["educator_id"], unique=False)
         batch_op.create_index("ix_educator_course_assignments_course_id", ["course_id"], unique=False)
+    # Backfill the seeded demo educator assignment for databases that already contain demo users.
+    op.execute("""
+        INSERT INTO educator_course_assignments (educator_id, course_id, assigned_at)
+        SELECT users.id, courses.id, CURRENT_TIMESTAMP
+        FROM users JOIN courses ON courses.slug = 'python-foundations-101'
+        WHERE users.email = 'meera.educator@demo.learnwhy.edu' AND users.role = 'educator'
+    """)
 
 
 def downgrade() -> None:
