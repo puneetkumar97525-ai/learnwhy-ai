@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal, engine, Base
 from app.core.security import hash_password
 from app.models.entities import (
+    EducatorCourseAssignment,
     Achievement,
     Activity,
     AnswerOption,
@@ -1084,6 +1085,9 @@ def seed_database(db: Session) -> None:
         selected_course_id=course.id,
     )
     db.add_all([aarav, priya, rohan, educator, admin])
+    db.flush()
+    # Demo educator is explicitly assigned to the Python Foundations course/cohort.
+    db.add(EducatorCourseAssignment(educator_id=educator.id, course_id=course.id))
     db.flush()
 
     for u in [aarav, priya, rohan, educator, admin]:
